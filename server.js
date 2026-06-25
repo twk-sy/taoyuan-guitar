@@ -22,8 +22,8 @@ const fs = require('fs');
 	}
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DATA_DIR, 'checkin.db');
+	const DATA_DIR = path.join(__dirname, 'data');
+	const DB_PATH = path.join(DATA_DIR, 'checkin.db');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 	fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -53,8 +53,20 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
   CREATE INDEX IF NOT EXISTS idx_checkins_user ON checkins(user_id);
-  CREATE INDEX IF NOT EXISTS idx_checkins_date ON checkins(date);
-`);
+	  CREATE INDEX IF NOT EXISTS idx_checkins_date ON checkins(date);
+	`);
+	
+	(function autoSeed() {
+	  const count = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
+	  if (count === 0) {
+	    const insert = db.prepare('INSERT OR IGNORE INTO users (name, password_hash, role) VALUES (?, ?, ?)');
+	    const hash = (pw) => { const s = crypto.randomBytes(16).toString("hex"); const h = crypto.pbkdf2Sync(pw, s, 100000, 64, "sha512").toString("hex"); return s + ":" + h; };
+	    insert.run('一闲', hash('1234'), 'teacher');
+	    insert.run('花间一壶酒', hash('1234'), 'student');
+	    insert.run('兰子', hash('1234'), 'student');
+	    console.log('Default users created');
+	  }
+	})();
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
