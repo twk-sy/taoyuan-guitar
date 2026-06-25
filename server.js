@@ -137,8 +137,15 @@ const upload = multer({
   }
 });
 
-function getVideoUrl(key) {
+async function getVideoUrl(key) {
 	  if (!key) return null;
+	  if (ossClient) {
+	    try {
+	      return await ossClient.signatureUrl(key, { expires: 3600 });
+	    } catch(e) {
+	      return '/uploads/' + key;
+	    }
+	  }
 	  return '/uploads/' + key;
 	}
 
@@ -226,7 +233,7 @@ app.get('/api/checkins', authMiddleware, async (req, res) => {
 	  }
   for (let row of rows) {
     if (row.video_path) {
-	      row.video_url = getVideoUrl(row.video_path);
+	      row.video_url = await getVideoUrl(row.video_path);
     }
   }
   res.json(rows);
@@ -237,7 +244,7 @@ app.get('/api/checkins/:id', authMiddleware, (req, res) => {
     'SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id WHERE c.id = ?'
   ).get(req.params.id);
   if (!row) return res.status(404).json({ error: '记录不存在' });
-  if (row.video_path) row.video_url = getVideoUrl(row.video_path);
+  if (row.video_path) row.video_url = await getVideoUrl(row.video_path);
   res.json(row);
 });
 
