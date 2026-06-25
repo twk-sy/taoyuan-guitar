@@ -8,10 +8,10 @@ const fs = require('fs');
 
 const JWT_SECRET = crypto.randomBytes(32).toString('hex');
 const ossClient = new OSS({
-  region: process.env.OSS_REGION || 'oss-cn-hangzhou',
-  accessKeyId: process.env.OSS_ACCESS_KEY_ID || 'LTAI5t9fUzvq9PX3r7k51PWu',
-  accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || '9Np8FgJgRSUPRl9pEepIZyYWMFXrg4',
-  bucket: process.env.OSS_BUCKET || 'taoyuan01'
+  region: process.env.OSS_REGION,
+  accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+  accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+  bucket: process.env.OSS_BUCKET
 });
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
