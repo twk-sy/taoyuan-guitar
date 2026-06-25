@@ -108,3 +108,9 @@ label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; c
 /* Empty state for student */
 .no-checkins { text-align: center; padding: 40px 20px; color: #8a7a68; background: #fff; border-radius: 12px; }
 .no-checkins p { font-size: 14px; margin-bottom: 8px; }
+	.card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+	.card-user { font-weight: 600; margin-right: auto; }
+	.card-date { color: #8b7355; font-size: 12px; }
+	.card-notes { color: #6b5b3e; font-size: 14px; margin-top: 6px; line-height: 1.5; }
+	.delete-btn { background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 6px; color: #d9534f; cursor: pointer; font-size: 12px; padding: 4px 12px; font-weight: 500; }
+	.delete-btn:hover { background: #f5c6cb; }
