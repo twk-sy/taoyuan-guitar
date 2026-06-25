@@ -239,7 +239,7 @@ app.get('/api/checkins', authMiddleware, async (req, res) => {
   res.json(rows);
 });
 
-app.get('/api/checkins/:id', authMiddleware, (req, res) => {
+	app.get('/api/checkins/:id', authMiddleware, async (req, res) => {
   const row = db.prepare(
     'SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id WHERE c.id = ?'
   ).get(req.params.id);
