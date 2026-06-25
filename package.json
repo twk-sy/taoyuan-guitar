@@ -1,0 +1,11 @@
+{
+  "name": "guitar-checkin",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "ali-oss": "^6.23.0",
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
