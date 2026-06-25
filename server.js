@@ -1,25 +1,33 @@
 const express = require('express');
-const Database = require('better-sqlite3');
-const multer = require('multer');
-const OSS = require('ali-oss');
-const path = require('path');
+	const Database = require('better-sqlite3');
+	const multer = require('multer');
+	const path = require('path');
+	const OSS = require('ali-oss');
 const crypto = require('crypto');
 const fs = require('fs');
 
-const JWT_SECRET = crypto.randomBytes(32).toString('hex');
-const ossClient = new OSS({
-  region: process.env.OSS_REGION,
-  accessKeyId: process.env.OSS_ACCESS_KEY_ID,
-  accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
-  bucket: process.env.OSS_BUCKET
-});
+	const JWT_SECRET = crypto.randomBytes(32).toString('hex');
+	let ossClient = null;
+	try {
+	  if (process.env.OSS_REGION && process.env.OSS_ACCESS_KEY_ID && process.env.OSS_ACCESS_KEY_SECRET && process.env.OSS_BUCKET) {
+	    ossClient = new OSS({
+	      region: process.env.OSS_REGION,
+	      accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+	      accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+	      bucket: process.env.OSS_BUCKET
+	    });
+	  }
+	} catch(e) {
+	  console.log('OSS not configured, using local storage');
+	}
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_PATH = path.join(DATA_DIR, 'checkin.db');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+	fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+	fs.mkdirSync(path.join(UPLOAD_DIR, 'videos'), { recursive: true });
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -117,14 +125,10 @@ const upload = multer({
   }
 });
 
-async function getSignedUrl(key) {
-  if (!key) return null;
-  try {
-    return await ossClient.signatureUrl(key, { expires: 3600 });
-  } catch(e) {
-    return null;
-  }
-}
+function getVideoUrl(key) {
+	  if (!key) return null;
+	  return '/uploads/' + key;
+	}
 
 const app = express();
 app.use(express.json());
@@ -173,16 +177,23 @@ app.post('/api/checkin', authMiddleware, upload.single('video'), async (req, res
   }
   let video_key = null;
   if (req.file) {
-    try {
-      const ext = path.extname(req.file.originalname).toLowerCase();
-      const key = 'videos/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
-      await ossClient.put(key, req.file.path);
-      video_key = key;
-      fs.unlink(req.file.path, () => {});
-    } catch (err) {
-      console.error('OSS upload error:', err);
-      return res.status(500).json({ error: '视频上传失败' });
-    }
+	    try {
+	      const ext = path.extname(req.file.originalname).toLowerCase();
+	      const key = 'videos/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+	      const destPath = path.join(UPLOAD_DIR, key);
+	      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+	      fs.copyFileSync(req.file.path, destPath);
+	      fs.unlinkSync(req.file.path);
+	      video_key = key;
+	      if (ossClient) {
+	        ossClient.put(key, destPath).catch(err => {
+	          console.error('OSS background upload failed:', err.message);
+	        });
+	      }
+	    } catch (err) {
+	      console.error('Video save error:', err);
+	      return res.status(500).json({ error: '视频保存失败' });
+	    }
   }
   const stmt = db.prepare('INSERT INTO checkins (user_id, date, duration_minutes, content, notes, video_path) VALUES (?, ?, ?, ?, ?, ?)');
   const result = stmt.run(req.user.id, date, Math.max(0, parseInt(duration_minutes || '0', 10)), content || '记录', notes || null, video_key);
@@ -203,7 +214,7 @@ app.get('/api/checkins', authMiddleware, async (req, res) => {
   }
   for (let row of rows) {
     if (row.video_path) {
-      row.video_url = await getSignedUrl(row.video_path);
+	      row.video_url = getVideoUrl(row.video_path);
     }
   }
   res.json(rows);
@@ -217,6 +228,7 @@ app.get('/api/checkins/:id', authMiddleware, (req, res) => {
   if (req.user.role === 'student' && row.user_id !== req.user.id) {
     return res.status(403).json({ error: '无权查看' });
   }
+  if (row.video_path) row.video_url = getVideoUrl(row.video_path);
   res.json(row);
 });
 
