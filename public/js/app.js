@@ -467,22 +467,37 @@ async function loadTeacherPage() {
     return;
   }
 
-  listEl.innerHTML =
-    '<div class="timeline">' +
-    checkins.map(c =>
-      '<div class="timeline-item">' +
-        '<div class="timeline-date">'+formatDate(c.date)+' &middot; '+escHtml(c.user_name)+'</div>' +
-        '<div class="timeline-body" style="cursor:pointer" data-id="'+c.id+'">' +
-          '<div class="meta">' +
-            '<span class="duration">⏱ '+c.duration_minutes+'分钟</span>' +
-            (c.video_url ? '<span>📹 有视频</span>' : '') +
-          '</div>' +
-          '<div class="content">'+escHtml(c.content)+'</div>' +
-          (c.notes ? '<div class="notes">'+escHtml(c.notes)+'</div>' : '') +
-        '</div>' +
-      '</div>'
-    ).join('') +
-    '</div>';
+	  listEl.innerHTML =
+	    '<div class="timeline">' +
+	    checkins.map(c =>
+	      '<div class="timeline-item">' +
+	        '<div class="timeline-date">'+formatDate(c.date)+' &middot; '+escHtml(c.user_name)+'</div>' +
+	        '<div class="timeline-body" style="cursor:pointer" data-id="'+c.id+'">' +
+	          '<div class="meta">' +
+	            '<span class="duration">⏱ '+c.duration_minutes+'分钟</span>' +
+	            (c.video_url ? '<span>📹 有视频</span>' : '') +
+	          '</div>' +
+	          '<div class="content">'+escHtml(c.content)+'</div>' +
+	          (c.notes ? '<div class="notes">'+escHtml(c.notes)+'</div>' : '') +
+	        '</div>' +
+	        '<button class="delete-btn" data-id="'+c.id+'" style="margin-top:8px">🗑 删除</button>' +
+	      '</div>'
+	    ).join('') +
+	    '</div>';
+	
+	  // Delete button events
+	  listEl.querySelectorAll('.delete-btn').forEach(btn => {
+	    btn.addEventListener('click', async (e) => {
+	      e.stopPropagation();
+	      const res = await api('DELETE', '/api/checkins/'+btn.dataset.id);
+	      if (res && res.success) {
+	        showToast('已删除', 'success');
+	        loadTeacherPage();
+	      } else if (res && res.error) {
+	        showToast(res.error, 'error');
+	      }
+	    });
+	  });
 
   // Click to detail
   $$('.timeline-body[data-id]').forEach(el => {
