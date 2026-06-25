@@ -1,7 +1,14 @@
 {
-  "name": "guitar-checkin",
+  "name": "taoyuan-guitar",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'Build complete'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "ali-oss": "^6.23.0",
     "better-sqlite3": "^11.0.0",
