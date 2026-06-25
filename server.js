@@ -9,12 +9,17 @@ const fs = require('fs');
 	const JWT_SECRET = crypto.randomBytes(32).toString('hex');
 	let ossClient = null;
 	try {
-	  if (process.env.OSS_REGION && process.env.OSS_ACCESS_KEY_ID && process.env.OSS_ACCESS_KEY_SECRET && process.env.OSS_BUCKET) {
+	  const reg = process.env.OSS_REGION || 'oss-cn-chengdu';
+	  const kid = process.env.OSS_ACCESS_KEY_ID;
+	  const sec = process.env.OSS_ACCESS_KEY_SECRET;
+	  const bkt = process.env.OSS_BUCKET;
+	  console.log('OSS check:', {reg: reg, kid: !!kid, sec: !!sec, bkt: !!bkt, region: process.env.OSS_REGION});
+	  if (kid && sec && bkt) {
 	    ossClient = new OSS({
-	      region: process.env.OSS_REGION,
-	      accessKeyId: process.env.OSS_ACCESS_KEY_ID,
-	      accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
-	      bucket: process.env.OSS_BUCKET
+	      region: reg,
+	      accessKeyId: kid,
+	      accessKeySecret: sec,
+	      bucket: bkt
 	    });
 	  }
 	} catch(e) {
