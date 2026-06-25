@@ -350,9 +350,12 @@ async function loadHistory() {
   // Delete handlers
   $$('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('确定删除这条记录？')) return;
-      const res = await api('DELETE', '/api/checkins/'+btn.dataset.id);
-      if (res && res.success) {
+	    const res = await api('DELETE', '/api/checkins/'+btn.dataset.id);
+	    if (res && res.success) {
+	      showToast('已删除', 'success');
+	      loadHistory();
+	    } else if (res && res.error) {
+	      showToast(res.error, 'error');
         showToast('已删除', 'success');
         loadHistory();
       }
