@@ -137,15 +137,8 @@ const upload = multer({
   }
 });
 
-async function getVideoUrl(key) {
+function getVideoUrl(key) {
 	  if (!key) return null;
-	  if (ossClient) {
-	    try {
-	      return await ossClient.signatureUrl(key, { expires: 3600 });
-	    } catch(e) {
-	      return '/uploads/' + key;
-	    }
-	  }
 	  return '/uploads/' + key;
 	}
 
@@ -228,23 +221,26 @@ app.get('/api/checkins', authMiddleware, async (req, res) => {
     ).all(limit);
 	  } else {
 	    rows = db.prepare(
-	      "SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id ORDER BY c.date DESC, c.created_at DESC"
-	    ).all();
-	  }
+	      "SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id WHERE c.user_id = ? OR c.user_id = (SELECT id FROM users WHERE role = 'teacher' LIMIT 1) ORDER BY c.date DESC, c.created_at DESC"
+	    ).all(req.user.id);
+  }
   for (let row of rows) {
     if (row.video_path) {
-	      row.video_url = await getVideoUrl(row.video_path);
+	      row.video_url = getVideoUrl(row.video_path);
     }
   }
   res.json(rows);
 });
 
-	app.get('/api/checkins/:id', authMiddleware, async (req, res) => {
+app.get('/api/checkins/:id', authMiddleware, (req, res) => {
   const row = db.prepare(
     'SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id WHERE c.id = ?'
   ).get(req.params.id);
   if (!row) return res.status(404).json({ error: '记录不存在' });
-  if (row.video_path) row.video_url = await getVideoUrl(row.video_path);
+	  if (req.user.role === 'student' && row.user_id !== req.user.id && row.user_id !== (db.prepare("SELECT id FROM users WHERE role='teacher' LIMIT 1").get()?.id)) {
+    return res.status(403).json({ error: '无权查看' });
+  }
+  if (row.video_path) row.video_url = getVideoUrl(row.video_path);
   res.json(row);
 });
 
