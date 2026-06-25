@@ -142,8 +142,16 @@ const upload = multer({
   }
 });
 
-function getVideoUrl(key) {
+async function getVideoUrl(key) {
 	  if (!key) return null;
+	  if (ossClient) {
+	    try {
+	      const url = await ossClient.signatureUrl(key, { expires: 3600 });
+	      return url;
+	    } catch(e) {
+	      console.error('OSS sigUrl error:', e.message);
+	    }
+	  }
 	  return '/uploads/' + key;
 	}
 
@@ -231,13 +239,13 @@ app.get('/api/checkins', authMiddleware, async (req, res) => {
   }
   for (let row of rows) {
     if (row.video_path) {
-	      row.video_url = getVideoUrl(row.video_path);
+	      row.video_url = await getVideoUrl(row.video_path);
     }
   }
   res.json(rows);
 });
 
-app.get('/api/checkins/:id', authMiddleware, (req, res) => {
+	app.get('/api/checkins/:id', authMiddleware, async (req, res) => {
   const row = db.prepare(
     'SELECT c.*, u.name as user_name FROM checkins c JOIN users u ON c.user_id = u.id WHERE c.id = ?'
   ).get(req.params.id);
@@ -245,7 +253,7 @@ app.get('/api/checkins/:id', authMiddleware, (req, res) => {
 	  if (req.user.role === 'student' && row.user_id !== req.user.id && row.user_id !== (db.prepare("SELECT id FROM users WHERE role='teacher' LIMIT 1").get()?.id)) {
     return res.status(403).json({ error: '无权查看' });
   }
-  if (row.video_path) row.video_url = getVideoUrl(row.video_path);
+  if (row.video_path) row.video_url = await getVideoUrl(row.video_path);
   res.json(row);
 });
 
